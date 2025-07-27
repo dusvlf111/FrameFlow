@@ -1,5 +1,8 @@
 # FrameFlow
 
+🌐 Available Languages:
+- [한국어 (Korean)](README.ko.md)
+
 FrameFlow is an open-source web application that transforms movies and TV shows into a comic-like viewing experience. It extracts key scenes based on subtitle timing and converts them into comic book-style PDF format.
 
 ## Features

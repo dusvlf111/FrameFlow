@@ -1,5 +1,8 @@
 # FrameFlow
 
+🌐 Available Languages:
+- [English](README.md)
+
 FrameFlow는 영화나 드라마를 만화처럼 볼 수 있도록 변환해주는 오픈소스 웹 애플리케이션입니다. 자막 타이밍을 기반으로 핵심 장면을 추출하여 만화책 형태의 PDF로 변환해줍니다.
 
 ## 주요 기능
