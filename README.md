@@ -1,103 +1,102 @@
 # FrameFlow
 
 🌐 Available Languages:
-- [한국어 (Korean)](README.ko.md)
+- [English](README.en.md)
 
-FrameFlow is an open-source web application that transforms movies and TV shows into a comic-like viewing experience. It extracts key scenes based on subtitle timing and converts them into comic book-style PDF format.
+FrameFlow는 영화나 드라마를 만화처럼 볼 수 있도록 변환해주는 오픈소스 웹 애플리케이션입니다. 자막 타이밍을 기반으로 핵심 장면을 추출하여 만화책 형태의 PDF로 변환해줍니다.
 
-## Features
+## 주요 기능
 
-- **Movie → Comic Conversion**: Upload video files and convert them into comic book format
-- **Subtitle-based Extraction**: Automatically extract dialogue scenes based on subtitle files (`.srt`, `.vtt`)
-- **Time Interval Extraction**: Extract frames at regular time intervals
-- **Comic Preview**: Preview extracted frames and subtitles in comic format
-- **PDF Download**: Download the completed comic as a PDF file
+- **영화 → 만화 변환**: 비디오 파일을 업로드하여 만화책 형태로 변환
+- **자막 기반 추출**: 자막 파일(`.srt`, `.vtt`)을 기반으로 대화 장면 자동 추출  
+- **시간 간격 추출**: 일정한 시간 간격으로 프레임 추출
+- **만화 미리보기**: 추출된 프레임과 자막을 만화 형태로 미리보기
+- **PDF 다운로드**: 완성된 만화를 PDF 파일로 다운로드
 
-## Getting Started
+## 시작하기
 
-### Prerequisites
+### 필수 조건
 
-- [Node.js](https://nodejs.org/) (v18 or later recommended)
-- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
+- [Node.js](https://nodejs.org/) (v18 이상 권장)
+- [npm](https://www.npmjs.com/) 또는 [yarn](https://yarnpkg.com/)
 
-### Installation
+### 설치
 
-1. **Clone the repository:**
+1. **저장소 복제:**
 
    ```bash
    git clone https://github.com/user/repo.git
    cd repo
    ```
 
-2. **Install dependencies:**
+2. **의존성 설치:**
 
    ```bash
    npm install
    ```
 
-3. **Run the development server:**
+3. **개발 서버 실행:**
 
    ```bash
    npm run dev
    ```
 
-   This will start the application in development mode. Open [http://localhost:5173](http://localhost:5173) to view it in your browser.
+   이렇게 하면 개발 모드에서 애플리케이션이 시작됩니다. 브라우저에서 [http://localhost:5173](http://localhost:5173)을 열어 확인하세요.
 
-## Usage
+## 사용법
 
-1. **Upload Video**: Upload your movie or TV show file.
-2. **Upload Subtitles** (Optional): Upload `.srt` or `.vtt` subtitle files.
-3. **Conversion Settings**: Choose between subtitle-based or time interval-based extraction.
-4. **Convert to Comic**: Click the "Convert to Comic" button to start conversion.
-5. **View Results**: Preview the generated comic pages and download as PDF.
+1. **비디오 업로드**: 영화나 드라마 파일을 업로드합니다.
+2. **자막 업로드** (선택사항): `.srt` 또는 `.vtt` 자막 파일을 업로드합니다.
+3. **변환 설정**: 자막 기반 또는 시간 간격 기반 추출 방식을 선택합니다.
+4. **만화 변환**: "Convert to Comic" 버튼을 클릭하여 변환을 시작합니다.
+5. **결과 확인**: 생성된 만화 페이지를 미리보고 PDF로 다운로드합니다.
 
-## Project Structure
+## 프로젝트 구조
 
 ```
 /
-├── public/                  # Public assets
+├── public/                  # 공개 자산
 ├── src/
-│   ├── assets/              # Image and font assets
-│   ├── components/          # Reusable UI components
-│   ├── hooks/               # Custom React hooks
-│   ├── pages/               # Page components
-│   ├── services/            # Services for business logic
-│   ├── types/               # TypeScript type definitions
-│   ├── utils/               # Utility functions
-│   └── main.tsx             # App entry point
-├── .eslintrc.cjs            # ESLint configuration
-├── .gitignore               # Git ignore file
-├── index.html               # HTML template
-├── package.json             # Project dependencies and scripts
-├── README.md                # Project README
-└── vite.config.ts           # Vite configuration
+│   ├── assets/              # 이미지 및 폰트 자산
+│   ├── components/          # 재사용 가능한 UI 컴포넌트
+│   ├── hooks/               # 사용자 정의 React 훅
+│   ├── pages/               # 페이지 컴포넌트
+│   ├── services/            # 비즈니스 로직 서비스
+│   ├── types/               # TypeScript 타입 정의
+│   ├── utils/               # 유틸리티 함수
+│   └── main.tsx             # 앱 진입점
+├── .eslintrc.cjs            # ESLint 설정
+├── .gitignore               # Git ignore 파일
+├── index.html               # HTML 템플릿
+├── package.json             # 프로젝트 의존성 및 스크립트
+├── README.md                # 프로젝트 README
+└── vite.config.ts           # Vite 설정
 ```
 
-## Contributing
+## 기여하기
 
-This project is open source! Contributions are welcome. Please open an issue or submit a pull request.
+이 프로젝트는 오픈소스입니다! 기여를 환영합니다. 이슈를 등록하거나 풀 리퀘스트를 제출해주세요.
 
-### Development Setup
+### 개발 환경 설정
 
 ```bash
-# Clone the repository
+# 저장소 복제
 git clone https://github.com/yourusername/frameflow.git
 cd frameflow
 
-# Install dependencies
+# 의존성 설치
 npm install
 
-# Start development server
+# 개발 서버 실행
 npm run dev
 
-# Run tests
+# 테스트 실행
 npm test
 
-# Build for production
+# 프로덕션 빌드
 npm run build
 ```
 
-## License
+## 라이선스
 
-This project is licensed under the MIT License.
-# FrameFlow
+이 프로젝트는 MIT 라이선스에 따라 라이선스가 부여됩니다.
