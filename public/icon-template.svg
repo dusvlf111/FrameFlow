@@ -1,0 +1,32 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#3b82f6" rx="80"/>
+  
+  <!-- Film Strip -->
+  <rect x="80" y="120" width="352" height="272" fill="#ffffff" rx="16"/>
+  
+  <!-- Film Holes -->
+  <rect x="60" y="140" width="20" height="20" fill="#3b82f6" rx="10"/>
+  <rect x="60" y="180" width="20" height="20" fill="#3b82f6" rx="10"/>
+  <rect x="60" y="220" width="20" height="20" fill="#3b82f6" rx="10"/>
+  <rect x="60" y="260" width="20" height="20" fill="#3b82f6" rx="10"/>
+  <rect x="60" y="300" width="20" height="20" fill="#3b82f6" rx="10"/>
+  <rect x="60" y="340" width="20" height="20" fill="#3b82f6" rx="10"/>
+  
+  <rect x="432" y="140" width="20" height="20" fill="#3b82f6" rx="10"/>
+  <rect x="432" y="180" width="20" height="20" fill="#3b82f6" rx="10"/>
+  <rect x="432" y="220" width="20" height="20" fill="#3b82f6" rx="10"/>
+  <rect x="432" y="260" width="20" height="20" fill="#3b82f6" rx="10"/>
+  <rect x="432" y="300" width="20" height="20" fill="#3b82f6" rx="10"/>
+  <rect x="432" y="340" width="20" height="20" fill="#3b82f6" rx="10"/>
+  
+  <!-- Frame Dividers -->
+  <line x1="200" y1="120" x2="200" y2="392" stroke="#e5e7eb" stroke-width="2"/>
+  <line x1="312" y1="120" x2="312" y2="392" stroke="#e5e7eb" stroke-width="2"/>
+  
+  <!-- Play Symbol -->
+  <polygon points="220,200 220,280 280,240" fill="#3b82f6"/>
+  
+  <!-- Brand Text -->
+  <text x="256" y="460" font-family="Arial, sans-serif" font-size="32" font-weight="bold" text-anchor="middle" fill="#ffffff">FF</text>
+</svg>

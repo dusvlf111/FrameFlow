@@ -1,0 +1,34 @@
+.viewerPageContainer {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.comicPageDisplay {
+  margin-bottom: 20px;
+}
+
+.comicImage {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #eee;
+}
+
+.pageNavigation {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.exportButtons {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.homeLinkContainer {
+  margin-top: 20px;
+}
