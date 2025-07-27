@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next'; // useTranslation 훅 임포트
 import FileUploader from '../components/FileUploader';
 import useVideoProcessor from '../hooks/useVideoProcessor';
-import { SubtitleEntry, parseSrt, parseVtt } from '../utils/subtitleParser';
+import { SubtitleEntry, parseSrt, parseVtt, createSubtitleBlob } from '../utils/subtitleParser';
 import { ImageFrame, createA4SixPanelLayout } from '../utils/imageLayout';
 import styles from './HomePage.module.css'; // CSS 모듈 임포트
 
@@ -31,10 +31,12 @@ const HomePage: React.FC = () => {
   const [selectedSubtitleFile, setSelectedSubtitleFile] = useState<File | null>(null);
   // 파싱된 자막 데이터를 저장하는 상태
   const [parsedSubtitles, setParsedSubtitles] = useState<SubtitleEntry[]>([]);
+  // 자막 파일의 Blob URL을 저장하는 상태 (비디오 미리보기용)
+  const [subtitleBlobUrl, setSubtitleBlobUrl] = useState<string | null>(null);
   // 변환 기준 (자막 또는 시간 간격)을 저장하는 상태
   const [conversionType, setConversionType] = useState<ConversionType>(ConversionType.SUBTITLE);
   // 시간 간격 기준 변환 시 사용할 간격 (초)을 저장하는 상태
-  const [intervalSeconds, setIntervalSeconds] = useState<number>(5); // 기본값 5초
+  const [intervalSeconds, setIntervalSeconds] = useState<string>('5'); // 기본값 5초, 문자열로 저장
   // 변환 중 상태를 나타내는 플래그
   const [isConverting, setIsConverting] = useState<boolean>(false);
   // 변환 진행률 (0-100)
@@ -42,6 +44,8 @@ const HomePage: React.FC = () => {
   // 사용 설명서와 개인정보 방침 표시 상태
   const [showUserGuide, setShowUserGuide] = useState<boolean>(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState<boolean>(false);
+  // 유효하지 않은 간격 입력 시 모달 표시 상태
+  const [showInvalidIntervalModal, setShowInvalidIntervalModal] = useState<boolean>(false);
 
   // useVideoProcessor 훅을 사용하여 비디오 처리 로직을 가져옵니다.
   // 비디오 엘리먼트는 렌더링 시점에 ref를 통해 연결됩니다.
@@ -65,22 +69,38 @@ const HomePage: React.FC = () => {
    * @param {File} file - 선택된 자막 파일 객체.
    */
   const handleSubtitleFileSelect = (file: File) => {
+    console.log('Subtitle file selected:', file.name, file.type, file.size);
     setSelectedSubtitleFile(file);
     const reader = new FileReader();
 
     reader.onload = (e) => {
       const content = e.target?.result as string;
+      console.log('File content length:', content.length);
+      console.log('File content preview:', content.substring(0, 200));
+      
       let subtitles: SubtitleEntry[] = [];
       // 파일 확장자에 따라 다른 파서 사용
       if (file.name.endsWith('.srt')) {
+        console.log('Parsing as SRT file');
         subtitles = parseSrt(content);
       } else if (file.name.endsWith('.vtt')) {
+        console.log('Parsing as VTT file');
         subtitles = parseVtt(content);
       } else {
         console.warn(t('unsupported_subtitle_format')); // 번역 키 사용
       }
+      
+      console.log('Parsed subtitles count:', subtitles.length);
       setParsedSubtitles(subtitles);
-      console.log('Parsed Subtitles:', subtitles); // 파싱된 자막 데이터 확인
+      
+      // 자막이 있으면 WebVTT Blob URL 생성
+      if (subtitles.length > 0) {
+        const blob = createSubtitleBlob(subtitles);
+        const url = URL.createObjectURL(blob);
+        setSubtitleBlobUrl(url);
+      } else {
+        setSubtitleBlobUrl(null);
+      }
     };
 
     reader.onerror = (e) => {
@@ -100,6 +120,15 @@ const HomePage: React.FC = () => {
     }
   }, [videoSrc, videoRef]);
 
+  // 컴포넌트 언마운트 시 Blob URL 정리
+  useEffect(() => {
+    return () => {
+      if (subtitleBlobUrl) {
+        URL.revokeObjectURL(subtitleBlobUrl);
+      }
+    };
+  }, [subtitleBlobUrl]);
+
   /**
    * @function handleConversionTypeChange
    * @description 변환 기준 라디오 버튼 변경 시 호출되는 핸들러.
@@ -112,15 +141,11 @@ const HomePage: React.FC = () => {
   /**
    * @function handleIntervalChange
    * @description 시간 간격 입력 필드 변경 시 호출되는 핸들러.
-   *              유효하지 않은 값(NaN, 음수)은 무시하고, 0도 허용합니다.
+   *              모든 입력을 허용하고 문자열로 저장합니다.
    * @param {React.ChangeEvent<HTMLInputElement>} event - 변경 이벤트 객체.
    */
   const handleIntervalChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(event.target.value, 10);
-    // isNaN 체크는 유지하되, 0도 유효한 입력으로 간주
-    if (!isNaN(value) && value >= 0) { // 0도 허용하도록 수정
-      setIntervalSeconds(value);
-    }
+    setIntervalSeconds(event.target.value); // 입력값을 그대로 문자열로 저장
   };
 
   /**
@@ -158,21 +183,26 @@ const HomePage: React.FC = () => {
           if (timeInSeconds <= videoDuration) {
             const dataUrl = await extractFrameAtTime(timeInSeconds);
             if (dataUrl) {
-              framesToExtract.push({ dataUrl, timestamp: timeInSeconds });
+              framesToExtract.push({ 
+                dataUrl, 
+                timestamp: timeInSeconds,
+                subtitle: subtitle.text // 자막 텍스트 추가
+              });
             }
           }
           setConversionProgress(Math.floor(((i + 1) / totalFrames) * 100)); // 진행률 업데이트
         }
       } else { // ConversionType.INTERVAL
         // 시간 간격 기준 변환
-        if (intervalSeconds <= 0) {
-          alert(t('alert_valid_interval')); // 번역 키 사용
+        const intervalValue = parseFloat(intervalSeconds);
+        if (intervalValue <= 0 || isNaN(intervalValue)) {
+          setShowInvalidIntervalModal(true); // 모달 표시
           setIsConverting(false);
           return;
         }
-        totalFrames = Math.floor(videoDuration / intervalSeconds) + 1; // 총 프레임 수 계산
+        totalFrames = Math.floor(videoDuration / intervalValue) + 1; // 총 프레임 수 계산
         let frameCount = 0;
-        for (let time = 0; time <= videoDuration; time += intervalSeconds) {
+        for (let time = 0; time <= videoDuration; time += intervalValue) {
           const dataUrl = await extractFrameAtTime(time);
           if (dataUrl) {
             framesToExtract.push({ dataUrl, timestamp: time });
@@ -205,11 +235,11 @@ const HomePage: React.FC = () => {
   // 1. 비디오가 로드되어야 함
   // 2. 비디오 파일이 선택되어야 함
   // 3. 변환 타입이 '자막 기준'일 경우, 파싱된 자막이 있어야 함
-  // 4. 변환 타입이 '시간 간격 기준'일 경우, 유효한 시간 간격(0보다 큰 값)이 설정되어야 함
+  // 4. 변환 타입이 '시간 간격 기준'일 경우, 간격이 설정되어야 함 (유효성은 변환 시점에 체크)
   // 5. 변환 중이 아니어야 함
   const isConvertButtonEnabled = isVideoLoaded && selectedVideoFile !== null && !isConverting && (
     (conversionType === ConversionType.SUBTITLE && parsedSubtitles.length > 0) ||
-    (conversionType === ConversionType.INTERVAL && intervalSeconds > 0) // 0보다 큰 값으로 명시적 확인
+    (conversionType === ConversionType.INTERVAL) // 간격 기준일 때는 항상 활성화 (유효성은 변환 시점에 체크)
   );
 
   return (
@@ -220,7 +250,7 @@ const HomePage: React.FC = () => {
       {/* 비디오 파일 업로드 영역 */}
       <div className={styles.section}> {/* 인라인 스타일을 className으로 변경 */}
         <h2>{t('upload_video_title')}</h2> {/* 번역 키 사용 */}
-        <FileUploader onFileSelect={handleVideoFileSelect} accept="video/*">
+        <FileUploader onFileSelect={handleVideoFileSelect} accept="video/*" id="video-upload">
           <div className={styles.fileUploaderArea}> {/* 인라인 스타일을 className으로 변경 */}
             {selectedVideoFile ? (
               <p>{t('video_selected', { fileName: selectedVideoFile.name })}</p> // 번역 키 사용
@@ -234,10 +264,10 @@ const HomePage: React.FC = () => {
       {/* 자막 파일 업로드 영역 */}
       <div className={styles.section}> {/* 인라인 스타일을 className으로 변경 */}
         <h2>{t('upload_subtitle_title')}</h2> {/* 번역 키 사용 */}
-        <FileUploader onFileSelect={handleSubtitleFileSelect} accept=".srt,.vtt">
+        <FileUploader onFileSelect={handleSubtitleFileSelect} accept=".srt,.vtt" id="subtitle-upload">
           <div className={styles.fileUploaderArea}> {/* 인라인 스타일을 className으로 변경 */}
             {selectedSubtitleFile ? (
-              <p>{t('video_selected', { fileName: selectedSubtitleFile.name })}</p> // 번역 키 사용
+              <p>{t('subtitle_selected', { fileName: selectedSubtitleFile.name })}</p> // 번역 키 사용
             ) : (
               <p>{t('subtitle_uploader_placeholder')}</p> // 번역 키 사용
             )}
@@ -259,6 +289,16 @@ const HomePage: React.FC = () => {
             controls
             className={styles.videoPreviewVideo}
           >
+            {/* 자막 트랙 추가 */}
+            {subtitleBlobUrl && (
+              <track
+                kind="subtitles"
+                src={subtitleBlobUrl}
+                srcLang="ko"
+                label="Subtitles"
+                default
+              />
+            )}
             {t('browser_not_support_video')}
           </video>
           {!isVideoLoaded && <p>{t('loading_video_metadata')}</p>}
@@ -302,7 +342,7 @@ const HomePage: React.FC = () => {
                 type="number"
                 value={intervalSeconds}
                 onChange={handleIntervalChange}
-                min="0" // min 속성을 0으로 변경
+                step="0.1" // 소수점 입력 허용
                 className={styles.intervalInput} // 인라인 스타일을 className으로 변경
               />
             </label>
@@ -325,13 +365,6 @@ const HomePage: React.FC = () => {
           {t('conversion_progress', { progress: conversionProgress })} {/* 번역 키 사용 */}
         </div>
       )}
-
-      {/* 테스트용 뷰어 페이지 링크 (개발 완료 후 제거 또는 조건부 렌더링) */}
-      <div className={styles.viewerLinkContainer}> {/* 인라인 스타일을 className으로 변경 */}
-        <Link to="/viewer">
-          <button>{t('go_to_viewer_test')}</button> {/* 번역 키 사용 */}
-        </Link>
-      </div>
 
       {/* 사용 설명서 섹션 */}
       <div className={styles.userGuide}>
@@ -417,6 +450,24 @@ const HomePage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* 유효하지 않은 간격 입력 모달 */}
+      {showInvalidIntervalModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowInvalidIntervalModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h3>{t('invalid_interval_modal_title')}</h3>
+            <p>{t('invalid_interval_modal_message')}</p>
+            <div className={styles.modalButtons}>
+              <button 
+                className={styles.modalButton}
+                onClick={() => setShowInvalidIntervalModal(false)}
+              >
+                {t('modal_ok_button')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -3,10 +3,12 @@
  * @description 이미지 프레임의 정보를 정의합니다.
  * @property {string} dataUrl - 이미지의 Data URL.
  * @property {number} timestamp - 이미지가 추출된 비디오의 시간 (초).
+ * @property {string} [subtitle] - 이 프레임에 해당하는 자막 텍스트 (선택사항).
  */
 export interface ImageFrame {
   dataUrl: string;
   timestamp: number;
+  subtitle?: string;
 }
 
 /**
@@ -96,6 +98,12 @@ export async function createA4SixPanelLayout(
       }
 
       ctx.drawImage(img, x + offsetX, y + offsetY, drawWidth, drawHeight);
+      
+      // 자막이 있는 경우 텍스트 렌더링
+      if (frame.subtitle && frame.subtitle.trim()) {
+        renderSubtitleOnPanel(ctx, frame.subtitle, x, y, panelWidth, panelHeight);
+      }
+      
       pageTimestamps.push(frame.timestamp);
     }
 
@@ -106,4 +114,85 @@ export async function createA4SixPanelLayout(
   }
 
   return comicPages;
+}
+
+/**
+ * @function renderSubtitleOnPanel
+ * @description 패널에 자막 텍스트를 렌더링합니다.
+ * @param {CanvasRenderingContext2D} ctx - Canvas 렌더링 컨텍스트.
+ * @param {string} subtitle - 렌더링할 자막 텍스트.
+ * @param {number} panelX - 패널의 X 좌표.
+ * @param {number} panelY - 패널의 Y 좌표.
+ * @param {number} panelWidth - 패널의 너비.
+ * @param {number} panelHeight - 패널의 높이.
+ */
+function renderSubtitleOnPanel(
+  ctx: CanvasRenderingContext2D,
+  subtitle: string,
+  panelX: number,
+  panelY: number,
+  panelWidth: number,
+  panelHeight: number
+): void {
+  // 자막 영역 설정 (패널 하단 20% 영역)
+  const subtitleAreaHeight = panelHeight * 0.2;
+  const subtitleY = panelY + panelHeight - subtitleAreaHeight;
+  const padding = 10;
+  
+  // 반투명 검은색 배경 그리기
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.fillRect(panelX, subtitleY, panelWidth, subtitleAreaHeight);
+  
+  // 텍스트 스타일 설정
+  const fontSize = Math.max(16, panelWidth * 0.03); // 패널 크기에 따른 동적 폰트 크기
+  ctx.font = `${fontSize}px Arial, sans-serif`;
+  ctx.fillStyle = 'white';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  
+  // 텍스트 줄바꿈 처리
+  const maxWidth = panelWidth - (padding * 2);
+  const lines = wrapText(ctx, subtitle, maxWidth);
+  
+  // 줄 높이 계산
+  const lineHeight = fontSize * 1.2;
+  const totalTextHeight = lines.length * lineHeight;
+  
+  // 텍스트 시작 Y 좌표 (중앙 정렬)
+  const textStartY = subtitleY + (subtitleAreaHeight - totalTextHeight) / 2 + lineHeight / 2;
+  
+  // 각 줄 렌더링
+  lines.forEach((line, index) => {
+    const textY = textStartY + (index * lineHeight);
+    ctx.fillText(line, panelX + panelWidth / 2, textY);
+  });
+}
+
+/**
+ * @function wrapText
+ * @description 주어진 너비에 맞게 텍스트를 줄바꿈합니다.
+ * @param {CanvasRenderingContext2D} ctx - Canvas 렌더링 컨텍스트.
+ * @param {string} text - 줄바꿈할 텍스트.
+ * @param {number} maxWidth - 최대 너비.
+ * @returns {string[]} 줄바꿈된 텍스트 배열.
+ */
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = words[0];
+
+  for (let i = 1; i < words.length; i++) {
+    const word = words[i];
+    const width = ctx.measureText(currentLine + ' ' + word).width;
+    
+    if (width < maxWidth) {
+      currentLine += ' ' + word;
+    } else {
+      lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  
+  lines.push(currentLine);
+  return lines;
 }

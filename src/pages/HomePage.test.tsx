@@ -27,7 +27,10 @@ vi.mock('react-i18next', () => ({
         'subtitle_uploader_placeholder': 'Drop subtitle file here or click to select',
         'video_selected': 'Video file selected',
         'browser_not_support_video': 'Your browser does not support video playback',
-        'interval_seconds': 'Interval (seconds):'
+        'interval_seconds': 'Interval (seconds):',
+        'invalid_interval_modal_title': 'Invalid Time Interval',
+        'invalid_interval_modal_message': 'Time interval must be a number greater than 0. Please enter a valid value.',
+        'modal_ok_button': 'OK'
       };
       return translations[key] || key;
     },
@@ -100,6 +103,7 @@ vi.mock('../utils/subtitleParser', () => ({
   parseVtt: vi.fn(() => [
     { id: '1', startTime: 1000, endTime: 3000, text: 'VTT Subtitle 1' },
   ]),
+  createSubtitleBlob: vi.fn(() => new Blob(['WEBVTT\n\nmocked subtitle'], { type: 'text/vtt' })),
 }));
 
 vi.mock('../utils/imageLayout', () => ({
@@ -111,6 +115,10 @@ vi.mock('../utils/imageLayout', () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+
+  // Mock URL.createObjectURL and URL.revokeObjectURL
+  globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock-subtitle-url');
+  globalThis.URL.revokeObjectURL = vi.fn();
 
   // Mock FileReader with proper async behavior
   const MockFileReader = function(this: any) {
@@ -361,9 +369,9 @@ describe('HomePage Integration', () => {
   });
 
   /**
-   * @test 시간 간격 기반 변환 선택 시 유효한 간격이 없으면 변환 버튼이 비활성화되는지 테스트
+   * @test 시간 간격 기반 변환 선택 시 유효하지 않은 간격으로 변환 버튼을 클릭하면 모달이 나타나는지 테스트
    */
-  it('should disable convert button if interval-based conversion is selected but interval is invalid', async () => {
+  it('should show modal when invalid interval is entered and convert button is clicked', async () => {
     render(<HomePage />);
 
     // 1. 비디오 업로드 시뮬레이션
@@ -389,10 +397,17 @@ describe('HomePage Integration', () => {
       expect(intervalInput).toHaveValue(0);
     });
 
-    // 4. 버튼 비활성화 확인
+    // 4. 변환 버튼은 활성화되어 있어야 함 (유효성 검사는 클릭 시점에)
     const convertButton = screen.getByRole('button', { name: /Convert to Comic/i });
+    expect(convertButton).toBeEnabled();
+
+    // 5. 변환 버튼 클릭
+    await userEvent.click(convertButton);
+
+    // 6. 모달이 표시되는지 확인
     await waitFor(() => {
-      expect(convertButton).toBeDisabled();
+      expect(screen.getByText('Invalid Time Interval')).toBeInTheDocument();
+      expect(screen.getByText('Time interval must be a number greater than 0. Please enter a valid value.')).toBeInTheDocument();
     });
   });
 });

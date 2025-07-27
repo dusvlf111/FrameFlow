@@ -144,3 +144,51 @@ function parseVttTime(timeString: string): number | null {
 
   return (hours * 3600 + minutes * 60 + seconds) * 1000 + milliseconds;
 }
+
+/**
+ * @function convertToWebVTT
+ * @description SubtitleEntry 배열을 WebVTT 형식의 문자열로 변환합니다.
+ * @param {SubtitleEntry[]} subtitles - 변환할 자막 항목 배열.
+ * @returns {string} WebVTT 형식의 자막 문자열.
+ */
+export function convertToWebVTT(subtitles: SubtitleEntry[]): string {
+  let vttContent = 'WEBVTT\n\n';
+  
+  subtitles.forEach((subtitle, index) => {
+    const startTime = formatWebVTTTime(subtitle.startTime);
+    const endTime = formatWebVTTTime(subtitle.endTime);
+    
+    vttContent += `${index + 1}\n`;
+    vttContent += `${startTime} --> ${endTime}\n`;
+    vttContent += `${subtitle.text}\n\n`;
+  });
+  
+  return vttContent;
+}
+
+/**
+ * @function formatWebVTTTime
+ * @description 밀리초를 WebVTT 형식의 시간 문자열로 변환합니다.
+ * @param {number} milliseconds - 변환할 시간 (밀리초).
+ * @returns {string} WebVTT 형식의 시간 문자열 (예: 00:01:23.456).
+ */
+function formatWebVTTTime(milliseconds: number): string {
+  const totalSeconds = Math.floor(milliseconds / 1000);
+  const ms = milliseconds % 1000;
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
+}
+
+/**
+ * @function createSubtitleBlob
+ * @description SubtitleEntry 배열을 WebVTT Blob으로 변환합니다.
+ * @param {SubtitleEntry[]} subtitles - 변환할 자막 항목 배열.
+ * @returns {Blob} WebVTT 형식의 Blob 객체.
+ */
+export function createSubtitleBlob(subtitles: SubtitleEntry[]): Blob {
+  const vttContent = convertToWebVTT(subtitles);
+  return new Blob([vttContent], { type: 'text/vtt' });
+}

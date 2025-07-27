@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseSrt, parseVtt } from './subtitleParser';
+import { parseSrt, parseVtt, convertToWebVTT, createSubtitleBlob } from './subtitleParser';
 
 describe('subtitleParser', () => {
   /**
@@ -144,5 +144,49 @@ Hello, world!
     `;
     const result = parseVtt(vttContent);
     expect(result).toHaveLength(0);
+  });
+
+  /**
+   * @test convertToWebVTT 함수가 SubtitleEntry 배열을 올바른 WebVTT 형식으로 변환하는지 테스트
+   */
+  it('should convert SubtitleEntry array to WebVTT format', () => {
+    const subtitles = [
+      { id: '1', startTime: 1000, endTime: 3000, text: 'Hello, world!' },
+      { id: '2', startTime: 4000, endTime: 6000, text: 'This is a test.' },
+    ];
+    
+    const result = convertToWebVTT(subtitles);
+    const lines = result.split('\n');
+    
+    expect(lines[0]).toBe('WEBVTT');
+    expect(lines[2]).toBe('1');
+    expect(lines[3]).toBe('00:00:01.000 --> 00:00:03.000');
+    expect(lines[4]).toBe('Hello, world!');
+    expect(lines[6]).toBe('2');
+    expect(lines[7]).toBe('00:00:04.000 --> 00:00:06.000');
+    expect(lines[8]).toBe('This is a test.');
+  });
+
+  /**
+   * @test convertToWebVTT 함수가 빈 배열을 처리하는지 테스트
+   */
+  it('should handle empty SubtitleEntry array', () => {
+    const subtitles: any[] = [];
+    const result = convertToWebVTT(subtitles);
+    expect(result).toBe('WEBVTT\n\n');
+  });
+
+  /**
+   * @test createSubtitleBlob 함수가 올바른 Blob을 생성하는지 테스트
+   */
+  it('should create a valid WebVTT Blob', () => {
+    const subtitles = [
+      { id: '1', startTime: 1000, endTime: 3000, text: 'Hello, world!' },
+    ];
+    
+    const blob = createSubtitleBlob(subtitles);
+    expect(blob).toBeInstanceOf(Blob);
+    expect(blob.type).toBe('text/vtt');
+    expect(blob.size).toBeGreaterThan(0);
   });
 });

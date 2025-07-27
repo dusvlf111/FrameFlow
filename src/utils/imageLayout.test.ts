@@ -14,6 +14,13 @@ const mockImageElement = vi.fn(() => ({
 // Mock HTMLCanvasElement and its 2D context
 const mockCanvasContext = {
   drawImage: vi.fn(),
+  fillRect: vi.fn(),
+  fillText: vi.fn(),
+  measureText: vi.fn(() => ({ width: 50 })), // Mock text measurement
+  font: '',
+  fillStyle: '',
+  textAlign: '',
+  textBaseline: '',
 };
 
 const mockCanvasElement = {
@@ -44,14 +51,11 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
-  // 각 테스트 후 mock clear
-  // mockImageElement는 생성자이므로, 생성된 인스턴스의 mockClear를 호출해야 함
-  // 여기서는 전역 mockImageElement를 사용했으므로, 각 테스트에서 생성된 인스턴스를 추적해야 함
-  // 또는 Image 생성자 모킹을 통해 반환된 객체의 onload/onerror를 직접 clear
-  // 현재 mockImageElement는 생성자 함수 자체를 모킹했으므로, 그 인스턴스의 onload/onerror를 clear해야 함
-  // 간단하게, Image 생성자 모킹을 통해 반환된 객체의 onload/onerror를 clear하는 방식으로 변경
-  // vi.spyOn(global, 'Image')를 사용했으므로, restoreAllMocks()가 충분히 clear 해줌
+  // Mock context 메서드들 clear
   mockCanvasContext.drawImage.mockClear();
+  mockCanvasContext.fillRect.mockClear();
+  mockCanvasContext.fillText.mockClear();
+  mockCanvasContext.measureText.mockClear();
   mockCanvasElement.getContext.mockClear();
   mockCanvasElement.toDataURL.mockClear();
 });
@@ -72,6 +76,44 @@ describe('createA4SixPanelLayout', () => {
     expect(comicPages[0].dataUrl).toBe('data:image/jpeg;base64,mocked_comic_page_data');
     expect(comicPages[0].timestamps).toEqual([0, 1000, 2000, 3000, 4000, 5000]);
     expect(mockCanvasContext.drawImage).toHaveBeenCalledTimes(6); // 6번 drawImage 호출
+  });
+
+  /**
+   * @test 자막이 포함된 프레임들로 만화 페이지를 올바르게 생성하는지 테스트
+   */
+  it('should create comic page with subtitles', async () => {
+    const frames: ImageFrame[] = [
+      { dataUrl: 'data:image/jpeg;base64,frame0', timestamp: 0, subtitle: 'Hello world!' },
+      { dataUrl: 'data:image/jpeg;base64,frame1', timestamp: 1000, subtitle: 'This is a subtitle' },
+      { dataUrl: 'data:image/jpeg;base64,frame2', timestamp: 2000 }, // 자막 없음
+    ];
+
+    const comicPages = await createA4SixPanelLayout(frames);
+
+    expect(comicPages).toHaveLength(1);
+    expect(mockCanvasContext.drawImage).toHaveBeenCalledTimes(3);
+    // 자막이 있는 프레임에 대해 fillRect와 fillText가 호출되어야 함
+    expect(mockCanvasContext.fillRect).toHaveBeenCalledTimes(2); // 자막 배경 2개
+    expect(mockCanvasContext.fillText).toHaveBeenCalled(); // 자막 텍스트 렌더링
+  });
+
+  /**
+   * @test 빈 자막이나 공백만 있는 자막은 렌더링하지 않는지 테스트
+   */
+  it('should not render empty or whitespace-only subtitles', async () => {
+    const frames: ImageFrame[] = [
+      { dataUrl: 'data:image/jpeg;base64,frame0', timestamp: 0, subtitle: '' },
+      { dataUrl: 'data:image/jpeg;base64,frame1', timestamp: 1000, subtitle: '   ' },
+      { dataUrl: 'data:image/jpeg;base64,frame2', timestamp: 2000, subtitle: 'Valid subtitle' },
+    ];
+
+    const comicPages = await createA4SixPanelLayout(frames);
+
+    expect(comicPages).toHaveLength(1);
+    expect(mockCanvasContext.drawImage).toHaveBeenCalledTimes(3);
+    // 유효한 자막이 하나만 있으므로 fillRect와 fillText가 1번씩만 호출되어야 함
+    expect(mockCanvasContext.fillRect).toHaveBeenCalledTimes(1);
+    expect(mockCanvasContext.fillText).toHaveBeenCalled();
   });
 
   /**
@@ -108,9 +150,9 @@ describe('createA4SixPanelLayout', () => {
    */
   it('should proceed even if an image fails to load', async () => {
     const frames: ImageFrame[] = [
-      { dataUrl: 'data:image/jpeg;base64,frame0', timestamp: 0 },
-      { dataUrl: 'invalid-url', timestamp: 1000 }, // 이 이미지는 로드 실패
-      { dataUrl: 'data:image/jpeg;base64,frame2', timestamp: 2000 },
+      { dataUrl: 'data:image/jpeg;base64,frame0', timestamp: 0, subtitle: 'First frame' },
+      { dataUrl: 'invalid-url', timestamp: 1000, subtitle: 'Failed frame' }, // 이 이미지는 로드 실패
+      { dataUrl: 'data:image/jpeg;base64,frame2', timestamp: 2000, subtitle: 'Third frame' },
     ];
 
     // Image 생성자 모킹을 재정의하여 특정 시나리오를 테스트
@@ -133,5 +175,27 @@ describe('createA4SixPanelLayout', () => {
     expect(comicPages).toHaveLength(1);
     expect(comicPages[0].timestamps).toEqual([0, 1000, 2000]); // 실패한 이미지의 타임스탬프도 포함
     expect(mockCanvasContext.drawImage).toHaveBeenCalledTimes(3); // 3번 drawImage 호출
+    expect(mockCanvasContext.fillRect).toHaveBeenCalledTimes(3); // 자막 배경 3개
+  });
+
+  /**
+   * @test 긴 자막 텍스트가 올바르게 줄바꿈되는지 테스트
+   */
+  it('should handle long subtitle text with word wrapping', async () => {
+    const frames: ImageFrame[] = [
+      { 
+        dataUrl: 'data:image/jpeg;base64,frame0', 
+        timestamp: 0, 
+        subtitle: 'This is a very long subtitle that should be wrapped across multiple lines to fit within the panel width' 
+      },
+    ];
+
+    const comicPages = await createA4SixPanelLayout(frames);
+
+    expect(comicPages).toHaveLength(1);
+    expect(mockCanvasContext.drawImage).toHaveBeenCalledTimes(1);
+    expect(mockCanvasContext.fillRect).toHaveBeenCalledTimes(1); // 자막 배경
+    expect(mockCanvasContext.fillText).toHaveBeenCalled(); // 자막 텍스트 (여러 줄일 수 있음)
+    expect(mockCanvasContext.measureText).toHaveBeenCalled(); // 텍스트 측정이 호출되어야 함
   });
 });

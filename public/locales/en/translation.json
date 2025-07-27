@@ -6,6 +6,7 @@
   "video_selected": "Selected: {{fileName}}",
   "upload_subtitle_title": "Upload Subtitle (Optional)",
   "subtitle_uploader_placeholder": "Drag & drop your subtitle here, or click to select (.srt, .vtt)",
+  "subtitle_selected": "Subtitle selected: {{fileName}}",
   "subtitles_parsed_success": "{{count}} subtitles parsed successfully.",
   "video_preview_title": "Video Preview",
   "loading_video_metadata": "Loading video metadata...",
@@ -63,5 +64,8 @@
   "privacy_policy_security": "Data Security",
   "privacy_policy_security_desc": "Since all processing happens locally in your browser, your files and data never leave your device, ensuring maximum security and privacy.",
   "privacy_policy_contact": "Contact Information",
-  "privacy_policy_contact_desc": "If you have any questions about this privacy policy or the application, please contact us through the project repository on GitHub."
+  "privacy_policy_contact_desc": "If you have any questions about this privacy policy or the application, please contact us through the project repository on GitHub.",
+  "invalid_interval_modal_title": "Invalid Time Interval",
+  "invalid_interval_modal_message": "Time interval must be a number greater than 0. Please enter a valid value.",
+  "modal_ok_button": "OK"
 }

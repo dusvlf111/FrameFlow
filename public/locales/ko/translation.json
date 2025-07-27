@@ -6,6 +6,7 @@
   "video_selected": "선택됨: {{fileName}}",
   "upload_subtitle_title": "자막 업로드 (선택 사항)",
   "subtitle_uploader_placeholder": "여기에 자막을 끌어다 놓거나 클릭하여 선택하세요 (.srt, .vtt)",
+  "subtitle_selected": "자막 선택됨: {{fileName}}",
   "subtitles_parsed_success": "{{count}}개의 자막이 성공적으로 파싱되었습니다.",
   "video_preview_title": "동영상 미리보기",
   "loading_video_metadata": "동영상 메타데이터 로드 중...",
@@ -63,5 +64,8 @@
   "privacy_policy_security": "데이터 보안",
   "privacy_policy_security_desc": "모든 처리가 브라우저 내에서 로컬로 수행되므로 파일과 데이터가 기기를 벗어나지 않아 최대한의 보안과 개인정보 보호를 보장합니다.",
   "privacy_policy_contact": "문의처",
-  "privacy_policy_contact_desc": "개인정보 처리방침이나 애플리케이션에 대한 질문이 있으시면 GitHub 프로젝트 저장소를 통해 문의해 주세요."
+  "privacy_policy_contact_desc": "개인정보 처리방침이나 애플리케이션에 대한 질문이 있으시면 GitHub 프로젝트 저장소를 통해 문의해 주세요.",
+  "invalid_interval_modal_title": "유효하지 않은 시간 간격",
+  "invalid_interval_modal_message": "시간 간격은 0보다 큰 숫자여야 합니다. 올바른 값을 입력해주세요.",
+  "modal_ok_button": "확인"
 }

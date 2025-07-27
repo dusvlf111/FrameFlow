@@ -6,11 +6,13 @@ import styles from './FileUploader.module.css'; // CSS 모듈 임포트
  * @property {function(File): void} onFileSelect - 파일이 선택되거나 드롭되었을 때 호출될 콜백 함수.
  * @property {string} accept - 허용되는 파일 타입을 지정하는 문자열 (예: "video/*", "audio/*", ".srt").
  * @property {React.ReactNode} children - 파일 업로더를 트리거할 UI 요소 (예: 버튼, 드롭 영역).
+ * @property {string} id - 파일 업로더의 고유 ID (여러 개의 FileUploader 구분용).
  */
 interface FileUploaderProps {
   onFileSelect: (file: File) => void;
   accept: string;
   children: React.ReactNode;
+  id?: string; // 선택적 prop으로 추가
 }
 
 /**
@@ -18,7 +20,7 @@ interface FileUploaderProps {
  * @description 사용자가 파일을 선택하거나 드래그 앤 드롭하여 업로드할 수 있는 컴포넌트.
  *              지정된 파일 타입만 허용하며, 파일 선택 시 onFileSelect 콜백을 호출합니다.
  */
-const FileUploader: React.FC<FileUploaderProps> = ({ onFileSelect, accept, children }) => {
+const FileUploader: React.FC<FileUploaderProps> = ({ onFileSelect, accept, children, id = 'file-upload' }) => {
   /**
    * @function handleFileChange
    * @description input[type="file"]을 통해 파일이 선택되었을 때 호출되는 핸들러.
@@ -43,9 +45,17 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileSelect, accept, child
     (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault(); // 기본 동작(새 탭에서 파일 열기 등) 방지
       const file = event.dataTransfer.files?.[0];
-      // 파일이 존재하고, 허용된 타입인지 확인 (accept 속성과 일치하는지 간단히 검사)
-      if (file && file.type.match(accept.replace('*', '.*'))) {
-        onFileSelect(file);
+      if (file) {
+        // accept 속성에 따른 파일 타입 검증
+        const isValidFile = accept.includes('*') 
+          ? file.type.includes(accept.split('/')[0]) // video/*, audio/* 형태
+          : accept.split(',').some(ext => file.name.toLowerCase().endsWith(ext.trim())); // .srt,.vtt 형태
+        
+        if (isValidFile) {
+          onFileSelect(file);
+        } else {
+          console.warn('Invalid file type:', file.type, file.name);
+        }
       }
     },
     [accept, onFileSelect] // 의존성 배열: accept와 onFileSelect가 변경될 때만 함수 재생성
@@ -69,11 +79,11 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileSelect, accept, child
         accept={accept}
         onChange={handleFileChange}
         className={styles.hiddenInput} // 인라인 스타일을 className으로 변경
-        id="file-upload"
+        id={id}
         aria-label="File Upload"
       />
       {/* label을 input과 연결하여 children 클릭 시 파일 선택 다이얼로그 열림 */}
-      <label htmlFor="file-upload" className={styles.fileUploaderLabel}> {/* 인라인 스타일을 className으로 변경 */}
+      <label htmlFor={id} className={styles.fileUploaderLabel}> {/* 인라인 스타일을 className으로 변경 */}
         {children}
       </label>
     </div>
