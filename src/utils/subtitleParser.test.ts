@@ -189,4 +189,47 @@ Hello, world!
     expect(blob.type).toBe('text/vtt');
     expect(blob.size).toBeGreaterThan(0);
   });
+
+  /**
+   * @test parseSrt 함수가 잘못된 시간 범위를 수정하는지 테스트
+   */
+  it('should fix invalid time ranges in SRT content', () => {
+    const srtContent = `
+1
+00:00:01,973 --> 00:00:01,812
+"이글루 모텔"
+
+2
+00:00:02,449 --> 00:00:02,283
+뭐야?
+    `;
+    const result = parseSrt(srtContent);
+    expect(result).toHaveLength(2);
+    
+    // 첫 번째 자막: 시간이 바뀌어야 함
+    expect(result[0].startTime).toBe(1812);
+    expect(result[0].endTime).toBe(1973);
+    expect(result[0].text).toBe('"이글루 모텔"');
+    
+    // 두 번째 자막: 시간이 바뀌어야 함
+    expect(result[1].startTime).toBe(2283);
+    expect(result[1].endTime).toBe(2449);
+    expect(result[1].text).toBe('뭐야?');
+  });
+
+  /**
+   * @test parseSrt 함수가 동일한 시간에 최소 지속시간을 추가하는지 테스트
+   */
+  it('should add minimum duration for same start and end times', () => {
+    const srtContent = `
+1
+00:00:01,000 --> 00:00:01,000
+Same time subtitle
+    `;
+    const result = parseSrt(srtContent);
+    expect(result).toHaveLength(1);
+    expect(result[0].startTime).toBe(1000);
+    expect(result[0].endTime).toBe(2000); // 1초 추가됨
+    expect(result[0].text).toBe('Same time subtitle');
+  });
 });

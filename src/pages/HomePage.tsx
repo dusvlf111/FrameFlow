@@ -91,6 +91,10 @@ const HomePage: React.FC = () => {
       }
       
       console.log('Parsed subtitles count:', subtitles.length);
+      if (subtitles.length > 0) {
+        console.log('First subtitle text:', JSON.stringify(subtitles[0].text));
+        console.log('First subtitle has line breaks:', subtitles[0].text.includes('\n'));
+      }
       setParsedSubtitles(subtitles);
       
       // 자막이 있으면 WebVTT Blob URL 생성
@@ -98,6 +102,11 @@ const HomePage: React.FC = () => {
         const blob = createSubtitleBlob(subtitles);
         const url = URL.createObjectURL(blob);
         setSubtitleBlobUrl(url);
+        
+        // 디버깅: 생성된 WebVTT 내용 확인
+        blob.text().then(content => {
+          console.log('Generated WebVTT content:', content);
+        });
       } else {
         setSubtitleBlobUrl(null);
       }
@@ -119,6 +128,88 @@ const HomePage: React.FC = () => {
       videoRef.current.load(); // 비디오 로드 시작
     }
   }, [videoSrc, videoRef]);
+
+  // 자막 트랙 추가 및 활성화
+  useEffect(() => {
+    if (videoRef.current && subtitleBlobUrl) {
+      const video = videoRef.current;
+      
+      // 기존 자막 트랙 제거
+      const existingTracks = video.querySelectorAll('track');
+      existingTracks.forEach(track => track.remove());
+      
+      // 새 자막 트랙 생성 및 추가
+      const track = document.createElement('track');
+      track.kind = 'subtitles';
+      track.src = subtitleBlobUrl;
+      track.srclang = 'ko';
+      track.label = 'Subtitles';
+      track.default = true;
+      
+      video.appendChild(track);
+      
+      // 트랙이 로드되면 활성화
+      track.addEventListener('load', () => {
+        console.log('Subtitle track loaded successfully');
+        setTimeout(() => {
+          if (video.textTracks.length > 0) {
+            video.textTracks[0].mode = 'showing';
+            console.log('Subtitle track activated');
+          }
+        }, 100);
+      });
+      
+      track.addEventListener('error', (e) => {
+        console.error('Error loading subtitle track:', e);
+      });
+      
+      // 비디오가 준비되면 자막 활성화
+      const handleLoadedData = () => {
+        setTimeout(() => {
+          if (video.textTracks.length > 0) {
+            video.textTracks[0].mode = 'showing';
+            console.log('Subtitle track set to showing mode on loadeddata');
+          }
+        }, 100);
+      };
+      
+      const handleCanPlay = () => {
+        setTimeout(() => {
+          if (video.textTracks.length > 0) {
+            video.textTracks[0].mode = 'showing';
+            console.log('Subtitle track set to showing mode on canplay');
+          }
+        }, 100);
+      };
+      
+      // 자막 트랙 상태 변경 감지
+      const handleTrackChange = () => {
+        console.log('Text tracks changed:', video.textTracks.length);
+        for (let i = 0; i < video.textTracks.length; i++) {
+          console.log(`Track ${i}: mode=${video.textTracks[i].mode}, kind=${video.textTracks[i].kind}`);
+        }
+      };
+      
+      video.addEventListener('loadeddata', handleLoadedData);
+      video.addEventListener('canplay', handleCanPlay);
+      video.addEventListener('loadstart', handleTrackChange);
+      
+      // 즉시 활성화 시도
+      setTimeout(() => {
+        if (video.textTracks.length > 0) {
+          video.textTracks[0].mode = 'showing';
+          console.log('Immediate subtitle track activation attempt');
+        }
+      }, 500);
+      
+      // 클린업 함수
+      return () => {
+        video.removeEventListener('loadeddata', handleLoadedData);
+        video.removeEventListener('canplay', handleCanPlay);
+        video.removeEventListener('loadstart', handleTrackChange);
+      };
+    }
+  }, [subtitleBlobUrl, videoRef]);
 
   // 컴포넌트 언마운트 시 Blob URL 정리
   useEffect(() => {
@@ -289,20 +380,49 @@ const HomePage: React.FC = () => {
             controls
             className={styles.videoPreviewVideo}
           >
-            {/* 자막 트랙 추가 */}
-            {subtitleBlobUrl && (
-              <track
-                kind="subtitles"
-                src={subtitleBlobUrl}
-                srcLang="ko"
-                label="Subtitles"
-                default
-              />
-            )}
             {t('browser_not_support_video')}
           </video>
           {!isVideoLoaded && <p>{t('loading_video_metadata')}</p>}
           {isVideoLoaded && <p>{t('video_loaded_ready')}</p>}
+          {subtitleBlobUrl && (
+            <div style={{ marginTop: '10px' }}>
+              <button
+                onClick={() => {
+                  if (videoRef.current && videoRef.current.textTracks.length > 0) {
+                    const track = videoRef.current.textTracks[0];
+                    const newMode = track.mode === 'showing' ? 'hidden' : 'showing';
+                    track.mode = newMode;
+                    console.log('Subtitle toggled to:', newMode);
+                    console.log('Track cues count:', track.cues?.length || 0);
+                    console.log('Video current time:', videoRef.current.currentTime);
+                    
+                    // 현재 시간에 활성 자막이 있는지 확인
+                    if (track.cues) {
+                      for (let i = 0; i < track.cues.length; i++) {
+                        const cue = track.cues[i] as VTTCue;
+                        console.log(`Cue ${i}: ${cue.startTime}s-${cue.endTime}s "${cue.text}"`);
+                      }
+                    }
+                  } else {
+                    console.log('No text tracks available');
+                  }
+                }}
+                style={{
+                  padding: '5px 10px',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '3px',
+                  cursor: 'pointer'
+                }}
+              >
+                자막 켜기/끄기
+              </button>
+              <span style={{ marginLeft: '10px', fontSize: '0.9em', color: '#666' }}>
+                자막이 보이지 않으면 이 버튼을 클릭해보세요
+              </span>
+            </div>
+          )}
         </div>
       )}
 

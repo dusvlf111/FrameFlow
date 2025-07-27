@@ -30,7 +30,7 @@ export function parseSrt(srtContent: string): SubtitleEntry[] {
 
     const id = lines[0];
     const timeString = lines[1];
-    const text = lines.slice(2).join('\n');
+    const text = cleanSubtitleText(lines.slice(2).join('\n'));
 
     // 시간 문자열 파싱 (예: 00:00:01,000 --> 00:00:03,000)
     const timeMatch = timeString.match(/(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})/);
@@ -40,10 +40,25 @@ export function parseSrt(srtContent: string): SubtitleEntry[] {
     const endTime = parseSrtTime(timeMatch[2]);
 
     if (startTime !== null && endTime !== null) {
+      let finalStartTime = startTime;
+      let finalEndTime = endTime;
+      
+      // 시작 시간이 끝 시간보다 큰 경우 수정
+      if (startTime > endTime) {
+        console.warn(`Invalid time range for subtitle ${id}: start=${startTime}, end=${endTime}. Swapping times.`);
+        finalStartTime = endTime;
+        finalEndTime = startTime;
+      }
+      
+      // 시간이 같은 경우 최소 1초 지속시간 설정
+      if (finalStartTime === finalEndTime) {
+        finalEndTime = finalStartTime + 1000; // 1초 추가
+      }
+      
       entries.push({
         id,
-        startTime,
-        endTime,
+        startTime: finalStartTime,
+        endTime: finalEndTime,
         text,
       });
     }
@@ -100,11 +115,11 @@ export function parseVtt(vttContent: string): SubtitleEntry[] {
     // 첫 번째 라인이 시간 정보인지, 아니면 ID인지 확인
     if (lines[0].includes('-->')) {
       timeString = lines[0];
-      text = lines.slice(1).join('\n');
+      text = cleanSubtitleText(lines.slice(1).join('\n'));
     } else {
       id = lines[0];
       timeString = lines[1];
-      text = lines.slice(2).join('\n');
+      text = cleanSubtitleText(lines.slice(2).join('\n'));
     }
 
     // 시간 문자열 파싱 (예: 00:00:01.000 --> 00:00:03.000)
@@ -115,10 +130,25 @@ export function parseVtt(vttContent: string): SubtitleEntry[] {
     const endTime = parseVttTime(timeMatch[2]);
 
     if (startTime !== null && endTime !== null) {
+      let finalStartTime = startTime;
+      let finalEndTime = endTime;
+      
+      // 시작 시간이 끝 시간보다 큰 경우 수정
+      if (startTime > endTime) {
+        console.warn(`Invalid time range for VTT subtitle ${id}: start=${startTime}, end=${endTime}. Swapping times.`);
+        finalStartTime = endTime;
+        finalEndTime = startTime;
+      }
+      
+      // 시간이 같은 경우 최소 1초 지속시간 설정
+      if (finalStartTime === finalEndTime) {
+        finalEndTime = finalStartTime + 1000; // 1초 추가
+      }
+      
       entries.push({
         id: id || String(entries.length + 1), // ID가 없으면 순번으로 대체
-        startTime,
-        endTime,
+        startTime: finalStartTime,
+        endTime: finalEndTime,
         text,
       });
     }
@@ -154,12 +184,33 @@ function parseVttTime(timeString: string): number | null {
 export function convertToWebVTT(subtitles: SubtitleEntry[]): string {
   let vttContent = 'WEBVTT\n\n';
   
+  // CSS 스타일을 WebVTT에 추가하여 자막 스타일 조정
+  vttContent += 'STYLE\n';
+  vttContent += '::cue {\n';
+  vttContent += '  background-color: rgba(0, 0, 0, 0.8);\n';
+  vttContent += '  color: white;\n';
+  vttContent += '  font-size: 16px;\n';
+  vttContent += '  font-family: Arial, sans-serif;\n';
+  vttContent += '  text-align: center;\n';
+  vttContent += '  line-height: 1.4;\n';
+  vttContent += '  padding: 8px 20px;\n';
+  vttContent += '  border-radius: 0;\n';
+  vttContent += '  white-space: pre-wrap;\n';
+  vttContent += '  width: 100%;\n';
+  vttContent += '  box-sizing: border-box;\n';
+  vttContent += '  position: fixed;\n';
+  vttContent += '  bottom: 100px;\n';
+  vttContent += '  left: 0;\n';
+  vttContent += '  right: 0;\n';
+  vttContent += '  z-index: 9999;\n';
+  vttContent += '}\n\n';
+  
   subtitles.forEach((subtitle, index) => {
     const startTime = formatWebVTTTime(subtitle.startTime);
     const endTime = formatWebVTTTime(subtitle.endTime);
     
     vttContent += `${index + 1}\n`;
-    vttContent += `${startTime} --> ${endTime}\n`;
+    vttContent += `${startTime} --> ${endTime}\n`; // 위치 설정 제거, CSS로만 제어
     vttContent += `${subtitle.text}\n\n`;
   });
   
@@ -191,4 +242,32 @@ function formatWebVTTTime(milliseconds: number): string {
 export function createSubtitleBlob(subtitles: SubtitleEntry[]): Blob {
   const vttContent = convertToWebVTT(subtitles);
   return new Blob([vttContent], { type: 'text/vtt' });
+}
+
+/**
+ * @function cleanSubtitleText
+ * @description 자막 텍스트에서 HTML 태그나 특수 문자를 제거하고 정리합니다.
+ * @param {string} text - 원본 자막 텍스트
+ * @returns {string} 정리된 자막 텍스트
+ */
+function cleanSubtitleText(text: string): string {
+  // HTML 태그 제거
+  let cleanText = text.replace(/<[^>]*>/g, '');
+  
+  // HTML 엔티티 디코딩
+  cleanText = cleanText
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+  
+  // 연속된 공백을 하나로 줄이기 (단, 줄바꿈은 보존)
+  cleanText = cleanText.replace(/ +/g, ' ');
+  
+  // 앞뒤 공백 제거 (각 줄별로)
+  cleanText = cleanText.split('\n').map(line => line.trim()).join('\n');
+  
+  return cleanText;
 }
