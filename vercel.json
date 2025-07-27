@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "frameflow",
   "builds": [
     {
       "src": "package.json",
