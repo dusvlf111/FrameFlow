@@ -1,4 +1,4 @@
-# FrameFlow
+# FrameFlow ⚡
 
 🌐 Available Languages:
 - [English](README.en.md)
