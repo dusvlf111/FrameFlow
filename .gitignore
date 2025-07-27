@@ -68,3 +68,4 @@ coverage/
 # Storybook build outputs
 storybook-static/
 .history
+.vercel
