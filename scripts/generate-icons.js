@@ -26,17 +26,23 @@ async function generateIcons() {
       const outputPath = path.join(PUBLIC_PATH, name);
       
       if (name.endsWith('.ico')) {
-        // For ICO files, use PNG format but save as ICO
-        await sharp(svgBuffer)
-          .resize(size, size)
-          .png()
-          .toFile(outputPath.replace('.ico', '.png'));
+        // For ICO files, generate multiple sizes (16x16, 32x32, 48x48)
+        const icoSizes = [16, 32, 48];
+        const icoBuffers = [];
         
-        // Rename to .ico
-        const pngPath = outputPath.replace('.ico', '.png');
-        if (fs.existsSync(pngPath)) {
-          fs.renameSync(pngPath, outputPath);
+        for (const icoSize of icoSizes) {
+          const buffer = await sharp(svgBuffer)
+            .resize(icoSize, icoSize)
+            .png()
+            .toBuffer();
+          icoBuffers.push(buffer);
         }
+        
+        // Use the 32x32 version as the main favicon
+        await sharp(svgBuffer)
+          .resize(32, 32)
+          .png()
+          .toFile(outputPath);
       } else {
         await sharp(svgBuffer)
           .resize(size, size)
